@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from database.Get.getUser import verUser
-from nutrIA.Ia import read_root
+from nutrIA.Ia import read_root;
+import os
 
 app = FastAPI()
 
