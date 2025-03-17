@@ -1,10 +1,14 @@
 import google.generativeai as gemini
 from pydantic import BaseModel
+import os
 
 class Pergunta(BaseModel):
     pergunta: str
 
-API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
+
+# "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
+
+API_KEY = os.getenv("GEMINI_API")
 gemini.configure(api_key=API_KEY);
 meta = "ficar musculoso"
 model = gemini.GenerativeModel("gemini-1.5-flash", system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome e você auxiliará o usuário com base na meta de {meta}, apenas isso.")
