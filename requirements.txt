@@ -92,8 +92,6 @@ pypiwin32==223
 pyproject_hooks==1.2.0
 python-dateutil==2.9.0.post0
 pytz==2024.2
-pywin32==308
-pywin32-ctypes==0.2.3
 pyzmq==26.2.0
 RapidFuzz==3.11.0
 requests==2.32.3
