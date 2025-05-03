@@ -85,7 +85,7 @@ async def read_root(question: Pergunta):
         salvar_agenda(**args, id_user=question.id_user)
 
         return{
-            "resposta":"text":{"Função chamada com sucesso."}
+            "message": {"resposta": "Função chamada com sucesso."}
         }
 
     return {
