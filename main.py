@@ -20,6 +20,7 @@ app.add_middleware(
 
 class Pergunta(BaseModel):
     pergunta: str
+    id_user: str
 
 @app.post("/question")
 async def read_question(question: Pergunta):
