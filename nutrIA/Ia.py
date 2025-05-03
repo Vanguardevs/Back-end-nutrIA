@@ -8,11 +8,9 @@ from google.generativeai.types import FunctionDeclaration, Tool
 
 admin = firebase_admin
 
-print(os.environ.get('/etc/secrets/nutria.json'))
-
 # cred = credentials.Certificate("./nutrIA/nutria_unofficial.json")
 
-cred = credentials.Certificate(os.environ.get("/etc/secrets/nutria.json"))
+cred = credentials.Certificate("/etc/secrets/nutria.json")
 
 admin.initialize_app(cred,{
     'databaseURL': 'https://nutria-unofficial-default-rtdb.firebaseio.com/'
