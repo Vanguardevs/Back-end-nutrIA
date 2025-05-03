@@ -8,7 +8,7 @@ from google.generativeai.types import FunctionDeclaration, Tool
 
 admin = firebase_admin
 
-print(os.environ.get())
+print(os.environ.get('nutria.json'))
 
 # cred = credentials.Certificate("./nutrIA/nutria_unofficial.json")
 
