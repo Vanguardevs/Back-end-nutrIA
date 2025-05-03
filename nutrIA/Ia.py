@@ -13,7 +13,7 @@ admin = firebase_admin
 cred = credentials.Certificate("/etc/secrets/nutria.json")
 
 admin.initialize_app(cred,{
-    'databaseURL': 'https://nutria-unofficial-default-rtdb.firebaseio.com/'
+    'databaseURL': 'https://nutria-eafaa.firebaseio.com/'
 })
 
 
