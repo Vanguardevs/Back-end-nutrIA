@@ -1,22 +1,96 @@
 import google.generativeai as gemini
 from pydantic import BaseModel
 import os
+import firebase_admin
+from firebase_admin import db, credentials
+from google.generativeai.types import FunctionDeclaration, Tool
+
+
+admin = firebase_admin
+
+print(os.environ.get())
+
+# cred = credentials.Certificate("./nutrIA/nutria_unofficial.json")
+
+cred = credentials.Certificate(os.environ.get("nutria.json"))
+
+admin.initialize_app(cred,{
+    'databaseURL': 'https://nutria-unofficial-default-rtdb.firebaseio.com/'
+})
+
+
+schedule_meeting_function = FunctionDeclaration(
+    name="schedule_meeting",
+    description="Agendar alimentação do usuário, Refeição, hora",
+    parameters={
+        "type": "object",
+        "properties": {
+            "refeicao":{
+                "type": "string",
+                "description": "quero comer Sanduíche"
+            },
+            "hora":{
+                "type": "string",
+                "description": "comer às 19:40"
+            }
+        },
+        "required": ["refeicao", "hora"],
+    },
+)
+
+def salvar_agenda(refeicao, hora, id_user):
+    ref = db.reference(f"users/{id_user}/diaries")
+
+    novo_agendamento = {
+        "refeicao": refeicao,
+        "hora": hora
+    }
+
+    ref.push(novo_agendamento)
+    print(f"✅ Agendamento salvo para o usuário {id_user}")
+
 
 class Pergunta(BaseModel):
     pergunta: str
+    id_user: str
 
 
-# "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
+API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
 
-API_KEY = os.getenv("GEMINI_API")
+# API_KEY = os.getenv("GEMINI_API")
 gemini.configure(api_key=API_KEY);
 meta = "ficar musculoso"
-model = gemini.GenerativeModel("gemini-1.5-flash", system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. Não responda perguntas além de nutricionismo.")
-# Ia = modelo.generate_content("Qual dia de hoje?")
-chat = model.start_chat(history=[])
+model = gemini.GenerativeModel(
+    "gemini-1.5-flash", 
+    system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. Não responda perguntas além de nutricionismo.",
+    tools=[Tool(function_declarations=[schedule_meeting_function])]
+    )
 
-chat = model.start_chat(history=[])
+# Ia = modelo.generate_content("Qual dia de hoje?")
+# chat = model.start_chat(history=[])
 
 async def read_root(question: Pergunta):
-    resposta = await chat.send_message_async(question.pergunta, generation_config=gemini.GenerationConfig(max_output_tokens=100,temperature=0.1))
-    return {"pergunta": question.pergunta, "resposta": resposta.text}
+    resposta = await model.generate_content_async(
+        question.pergunta,
+        generation_config=gemini.GenerationConfig(max_output_tokens=100, temperature=0.1)
+    )
+
+
+    # # Verifica se a IA quer chamar uma função
+    parts = resposta.candidates[0].content.parts
+    if parts and hasattr(parts[0], "function_call"):
+        function_call = parts[0].function_call
+        args = function_call.args
+        print("🧠 IA interpretou:", args)
+
+        # Chama a função real com os dados e o id_user
+        salvar_agenda(**args, id_user=question.id_user)
+
+        return{
+            "resposta": "Função chamada com sucesso."
+        }
+
+    return {
+        "pergunta": question.pergunta,
+        "resposta": resposta.text
+    }
