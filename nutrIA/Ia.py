@@ -80,13 +80,13 @@ async def read_root(question: Pergunta):
         function_call = parts[0].function_call
         args = function_call.args
         print("🧠 IA interpretou:", args)
-
+        
         # Chama a função real com os dados e o id_user
-        salvar_agenda(**args, id_user=question.id_user)
-
-        return{
-            "resposta": {"Função chamada com sucesso."}
-        }
+        if args:
+            salvar_agenda(**args, id_user=question.id_user)
+            return{
+                "resposta": {"Função chamada com sucesso."}
+            }
 
     return {
         "pergunta": question.pergunta,
