@@ -48,19 +48,35 @@ def salvar_agenda(refeicao, hora, id_user):
     print(f"✅ Agendamento salvo para o usuário {id_user}")
 
 
+
 class Pergunta(BaseModel):
     pergunta: str
     id_user: str
 
 
+
+def getDados(id_user:str):
+    ref = db.reference(f"users/{id_user}")
+    dados = ref.get();
+    if dados:
+        return dados;
+    else: 
+        return
+
+id_usuario = Pergunta.id_user
+dados_user = getDados(id_usuario)
+meta = dados_user["objetivo"]
+
+
 API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
+
+
 
 # API_KEY = os.getenv("GEMINI_API")
 gemini.configure(api_key=API_KEY);
-meta = "ficar musculoso"
 model = gemini.GenerativeModel(
     "gemini-1.5-flash", 
-    system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. Não responda perguntas além de nutricionismo.",
+    system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. a meta do usuário é {meta}. Não responda perguntas além de nutricionismo.",
     tools=[Tool(function_declarations=[schedule_meeting_function])]
     )
 
