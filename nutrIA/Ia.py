@@ -76,7 +76,7 @@ API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
 gemini.configure(api_key=API_KEY);
 model = gemini.GenerativeModel(
     "gemini-1.5-flash", 
-    system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. a meta do usuário é {meta}. Não responda perguntas além de nutricionismo.",
+    system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. Não responda perguntas além de nutricionismo.",
     tools=[Tool(function_declarations=[schedule_meeting_function])]
     )
 
