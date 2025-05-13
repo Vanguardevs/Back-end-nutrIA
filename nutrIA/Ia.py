@@ -55,17 +55,17 @@ class Pergunta(BaseModel):
 
 
 
-def getDados(id_user:str):
-    ref = db.reference(f"users/{id_user}")
-    dados = ref.get();
-    if dados:
-        return dados;
-    else: 
-        return
+# def getDados(id_user:str):
+#     ref = db.reference(f"users/{id_user}")
+#     dados = ref.get();
+#     if dados:
+#         return dados;
+#     else: 
+#         return
 
-dados:Pergunta
-dados_user = getDados(dados.id_user)
-meta = dados_user["objetivo"]
+# dados:Pergunta
+# dados_user = getDados(dados.id_user)
+# meta = dados_user["objetivo"]
 
 
 API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
