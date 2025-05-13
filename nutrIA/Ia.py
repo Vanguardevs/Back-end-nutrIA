@@ -63,8 +63,8 @@ def getDados(id_user:str):
     else: 
         return
 
-id_usuario = Pergunta.id_user
-dados_user = getDados(id_usuario)
+dados:Pergunta
+dados_user = getDados(dados.id_user)
 meta = dados_user["objetivo"]
 
 
