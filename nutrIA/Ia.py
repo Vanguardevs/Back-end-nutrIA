@@ -8,7 +8,7 @@ from google.generativeai.types import FunctionDeclaration, Tool
 
 admin = firebase_admin
 
-# cred = credentials.Certificate("./nutrIA/nutria_unofficial.json")
+# cred = credentials.Certificate("./nutrIA/nutria.json")
 
 cred = credentials.Certificate("/etc/secrets/nutria.json")
 
@@ -68,22 +68,26 @@ class Pergunta(BaseModel):
 # meta = dados_user["objetivo"]
 
 
-API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
+# API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
 
-
-
-# API_KEY = os.getenv("GEMINI_API")
+API_KEY = os.getenv("GEMINI_API")
 gemini.configure(api_key=API_KEY);
-model = gemini.GenerativeModel(
-    "gemini-1.5-flash", 
-    system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. Não responda perguntas além de nutricionismo.",
-    tools=[Tool(function_declarations=[schedule_meeting_function])]
-    )
 
 # Ia = modelo.generate_content("Qual dia de hoje?")
 # chat = model.start_chat(history=[])
 
 async def read_root(question: Pergunta):
+
+    ref = db.reference(f"users/{question.id_user}")
+    dados = ref.get();
+
+
+    model = gemini.GenerativeModel(
+    "gemini-1.5-flash", 
+    system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. Não responda perguntas além de nutricionismo. nome do usuário: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}",
+    tools=[Tool(function_declarations=[schedule_meeting_function])]
+    )
+
     resposta = await model.generate_content_async(
         question.pergunta,
         generation_config=gemini.GenerationConfig(max_output_tokens=100, temperature=0.1)
