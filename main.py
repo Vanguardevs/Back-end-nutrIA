@@ -4,6 +4,7 @@ from database.Get.getUser import verUser
 from nutrIA.Ia import read_root;
 import os
 from fastapi.middleware.cors import CORSMiddleware
+from  .nutrIA.CaloriesIndentify import Indentifer;
 
 app = FastAPI();
 
@@ -22,6 +23,12 @@ class Pergunta(BaseModel):
     pergunta: str
     id_user: str
 
+
+class CaloriesBase(BaseModel):
+    id_user: str
+    alimento: str
+    horario: str
+
 @app.post("/question")
 async def read_question(question: Pergunta):
     response = await read_root(question)
@@ -33,6 +40,13 @@ async def verUsuario():
     user = await verUser();
     if(user):
         return {"user": user}
+
+@app.post("/SaveCalories")
+async def CalcCalories(data: CaloriesBase):
+    response = Indentifer();
+    if(response):
+        return {"message": response}
+    
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
