@@ -34,6 +34,8 @@ schedule_meeting_function = FunctionDeclaration(
         },
         "required": ["refeicao", "hora"],
     },
+
+
 )
 
 def salvar_agenda(refeicao, hora, id_user):
@@ -90,7 +92,7 @@ async def read_root(question: Pergunta):
 
     resposta = await model.generate_content_async(
         question.pergunta,
-        generation_config=gemini.GenerationConfig(max_output_tokens=100, temperature=0.1)
+        generation_config=gemini.GenerationConfig(max_output_tokens=5000, temperature=0.1)
     )
 
 
@@ -105,8 +107,10 @@ async def read_root(question: Pergunta):
         if args:
             salvar_agenda(**args, id_user=question.id_user)
             return{
-                "resposta": {"Função chamada com sucesso."}
+                "resposta": {"Agendado com sucesso!"}
             }
+        elif not args:
+            return{"resposta": {"Não foi possível agendar."}
 
     return {
         "pergunta": question.pergunta,
