@@ -85,7 +85,7 @@ async def read_root(question: Pergunta):
 
 
     model = gemini.GenerativeModel(
-    "gemini-2.0-flash", 
+    "gemini-1.5-pro", 
     system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. Não responda perguntas além de nutricionismo. nome do usuário: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}",
     tools=[Tool(function_declarations=[schedule_meeting_function])]
     )
