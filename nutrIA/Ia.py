@@ -34,6 +34,8 @@ schedule_meeting_function = FunctionDeclaration(
         },
         "required": ["refeicao", "hora"],
     },
+
+
 )
 
 def salvar_agenda(refeicao, hora, id_user):
@@ -83,14 +85,14 @@ async def read_root(question: Pergunta):
 
 
     model = gemini.GenerativeModel(
-    "gemini-1.5-flash", 
+    "gemini-2.0-flash", 
     system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. Não responda perguntas além de nutricionismo. nome do usuário: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}",
     tools=[Tool(function_declarations=[schedule_meeting_function])]
     )
 
     resposta = await model.generate_content_async(
         question.pergunta,
-        generation_config=gemini.GenerationConfig(max_output_tokens=100, temperature=0.1)
+        generation_config=gemini.GenerationConfig(max_output_tokens=5000, temperature=0.1)
     )
 
 
@@ -105,8 +107,10 @@ async def read_root(question: Pergunta):
         if args:
             salvar_agenda(**args, id_user=question.id_user)
             return{
-                "resposta": {"Função chamada com sucesso."}
+                "resposta": {"Agendado com sucesso!"}
             }
+        elif not args:
+            return{"resposta": {"Não foi possível agendar."}
 
     return {
         "pergunta": question.pergunta,
