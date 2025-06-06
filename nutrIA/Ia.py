@@ -109,8 +109,6 @@ async def read_root(question: Pergunta):
             return{
                 "resposta": {"Agendado com sucesso!"}
             }
-        elif not args:
-            return{"resposta": {"Não foi possível agendar."}}
 
     return {
         "pergunta": question.pergunta,
