@@ -23,12 +23,6 @@ class Pergunta(BaseModel):
     pergunta: str
     id_user: str
 
-
-class CaloriesBase(BaseModel):
-    id_user: str
-    alimento: str
-    horario: str
-
 @app.post("/question")
 async def read_question(question: Pergunta):
     response = await read_root(question)
@@ -40,13 +34,6 @@ async def verUsuario():
     user = await verUser();
     if(user):
         return {"user": user}
-
-@app.post("/SaveCalories")
-async def CalcCalories(data: CaloriesBase):
-    response = Indentifer();
-    if(response):
-        return {"message": response}
-    
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
