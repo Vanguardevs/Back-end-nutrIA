@@ -4,7 +4,6 @@ from database.Get.getUser import verUser
 from nutrIA.Ia import read_root;
 import os
 from fastapi.middleware.cors import CORSMiddleware
-from  .nutrIA.CaloriesIndentify import Indentifer;
 
 app = FastAPI();
 
