@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from database.Get.getUser import verUser
 from nutrIA.Ia import read_root;
 import os
 from fastapi.middleware.cors import CORSMiddleware
+from nutrIA.CheckCalories import check_calories_function
 
 app = FastAPI();
 
@@ -21,6 +21,23 @@ app.add_middleware(
 class Pergunta(BaseModel):
     pergunta: str
     id_user: str
+
+class CalorieRequest(BaseModel):
+    tipo_refeicao: str
+    horario: str
+    refeicao: str
+    id_user: str
+
+@app.post("/calories")
+async def check_calories(request: CalorieRequest):
+    response = await check_calories_function(
+        tipo_refeicao=request.tipo_refeicao,
+        horario=request.horario,
+        refeicao=request.refeicao,
+        id_user=request.id_user
+    )
+    if(response):
+        return {"message": response}
 
 @app.post("/question")
 async def read_question(question: Pergunta):

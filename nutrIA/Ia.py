@@ -2,20 +2,10 @@ import google.generativeai as gemini
 from pydantic import BaseModel
 import os
 import firebase_admin
-from firebase_admin import db, credentials
 from google.generativeai.types import FunctionDeclaration, Tool
-
+from firebase.firebase_config import firebase_admin, db
 
 admin = firebase_admin
-
-# cred = credentials.Certificate("./nutrIA/nutria.json")
-
-cred = credentials.Certificate("/etc/secrets/nutria.json")
-
-admin.initialize_app(cred,{
-    'databaseURL': 'https://nutria-eafaa-default-rtdb.firebaseio.com/'
-})
-
 
 schedule_meeting_function = FunctionDeclaration(
     name="schedule_meeting",
@@ -48,7 +38,6 @@ def salvar_agenda(refeicao, hora, id_user):
 
     ref.push(novo_agendamento)
     print(f"✅ Agendamento salvo para o usuário {id_user}")
-
 
 
 class Pergunta(BaseModel):
