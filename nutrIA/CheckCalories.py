@@ -30,6 +30,16 @@ async def check_calories_function(tipo_refeicao: str, horario: str, refeicao: st
             "refeicao": refeicao,
             "calorias": calorias
         })
+        refprogress = db.reference(f"users/{id_user}/diaries/progress")
+        refprogress.push({
+            "0":False,
+            "1":False,
+            "2":False,
+            "3":False,
+            "4":False,
+            "5":False,
+            "6":False,
+        })
 
         return f"Calorias calculadas e salvas com sucesso: {calorias}"
 
