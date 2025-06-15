@@ -6,9 +6,9 @@ from google.generativeai.types import FunctionDeclaration, Tool
 
 admin = firebase_admin
 
-API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
+# API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
 
-# API_KEY = os.getenv("GEMINI_API")
+API_KEY = os.getenv("GEMINI_API")
 gemini.configure(api_key=API_KEY)
 
 async def check_calories_function(tipo_refeicao: str, horario: str, refeicao: str, id_user: str) -> str:

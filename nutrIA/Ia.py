@@ -7,6 +7,11 @@ from firebase.firebase_config import firebase_admin, db
 
 admin = firebase_admin
 
+# API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
+
+API_KEY = os.getenv("GEMINI_API")
+gemini.configure(api_key=API_KEY)
+
 schedule_meeting_function = FunctionDeclaration(
     name="schedule_meeting",
     description="Agendar alimentação do usuário, Refeição, hora",
@@ -24,59 +29,104 @@ schedule_meeting_function = FunctionDeclaration(
         },
         "required": ["refeicao", "hora"],
     },
-
-
 )
 
-def salvar_agenda(refeicao, hora, id_user):
-    ref = db.reference(f"users/{id_user}/diaries")
+def indentificar_tipo_refeicao(hora: str) -> str:
+    hora_int = int(hora.split(':')[0])
+    if 6 <= hora_int < 11:
+        return "Café Da Manhã"
+    elif 11 <= hora_int < 15:
+        return "Almoço"
+    elif 15 <= hora_int < 19:
+        return "Lanche"
+    else:
+        return "Jantar"
 
-    novo_agendamento = {
-        "refeicao": refeicao,
-        "hora": hora
-    }
+def validar_e_formatar_horario(hora: str) -> str:
+    """
+    Valida e formata o horário no formato HH:MM.
+    :param hora: Horário fornecido pelo usuário.
+    :return: Horário formatado no formato HH:MM ou levanta uma exceção se inválido.
 
-    ref.push(novo_agendamento)
-    print(f"✅ Agendamento salvo para o usuário {id_user}")
+    """
+    try:
+        partes = hora.split(":")
+        if len(partes) != 2:
+            raise ValueError("Formato de horário inválido. Use HH:MM.")
+
+        hora_int = int(partes[0])
+        minuto_int = int(partes[1])
+
+        if not (0 <= hora_int < 24) or not (0 <= minuto_int < 60):
+            raise ValueError("Horário fora dos limites válidos.")
+
+        return f"{hora_int:02}:{minuto_int:02}"
+    except Exception as e:
+        raise ValueError(f"Erro ao validar o horário: {str(e)}")
+
+async def salvar_agenda(refeicao, hora, id_user):
+    """
+    Salva o agendamento no banco de dados Firebase.
+    :param refeicao: Nome da refeição.
+    :param hora: Horário agendado no formato "HH:mm".
+    :param id_user: ID do usuário.
+
+    """
+    try:
+        hora_formatada = validar_e_formatar_horario(hora)
+
+        tipo_refeicao = indentificar_tipo_refeicao(hora_formatada)
+        if not refeicao or not hora:
+            print("❌ Erro: Refeição ou hora não informados.")
+            return
+        
+        prompt = f"Calcule as calorias para a refeição '{refeicao}'"
+        model = gemini.GenerativeModel("gemini-1.5-flash", system_instruction="Você deve apenas retornar numero")
+        gemini_response = await model.generate_content_async(prompt)
+
+        calorias = gemini_response.text.strip()
+        if not calorias.isdigit():
+            return "Erro ao calcular as calorias. Resposta inválida do Gemini."
+
+        calorias = int(calorias)
+
+        ref = db.reference(f"users/{id_user}/diaries")
+
+        novo_agendamento = {
+            "tipo_refeicao": tipo_refeicao,
+            "refeicao": refeicao,
+            "hora": hora_formatada,
+            "calorias": calorias,
+            "progress": {
+                "0": False,
+                "1": False,
+                "2": False,
+                "3": False,
+                "4": False,
+                "5": False,
+                "6": False
+            }
+        }
+
+        ref.push(novo_agendamento)
+
+        print(f"✅ Agendamento salvo para o usuário {id_user}")
+    except ValueError as e:
+        print(f"❌ Erro ao salvar agendamento: {str(e)}")
 
 
 class Pergunta(BaseModel):
     pergunta: str
     id_user: str
 
-
-
-# def getDados(id_user:str):
-#     ref = db.reference(f"users/{id_user}")
-#     dados = ref.get();
-#     if dados:
-#         return dados;
-#     else: 
-#         return
-
-# dados:Pergunta
-# dados_user = getDados(dados.id_user)
-# meta = dados_user["objetivo"]
-
-
-# API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
-
-API_KEY = os.getenv("GEMINI_API")
-gemini.configure(api_key=API_KEY);
-
-# Ia = modelo.generate_content("Qual dia de hoje?")
-# chat = model.start_chat(history=[])
-
 async def read_root(question: Pergunta):
-
     ref = db.reference(f"users/{question.id_user}")
-    dados = ref.get();
-
+    dados = ref.get()
 
     model = gemini.GenerativeModel(
-    "gemini-1.5-flash", 
-    system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser e direta. Não responda perguntas além de nutricionismo. nome do usuário: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}",
-    tools=[Tool(function_declarations=[schedule_meeting_function])]
+        "gemini-1.5-flash",
+        system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser direta. Não responda perguntas além de nutricionismo. nome do usuário: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}",
+        tools=[Tool(function_declarations=[schedule_meeting_function])]
     )
 
     resposta = await model.generate_content_async(
@@ -84,20 +134,24 @@ async def read_root(question: Pergunta):
         generation_config=gemini.GenerationConfig(max_output_tokens=5000, temperature=0.1)
     )
 
-
-    # # Verifica se a IA quer chamar uma função
+    # Verifica se a IA quer chamar uma função
     parts = resposta.candidates[0].content.parts
     if parts and hasattr(parts[0], "function_call"):
         function_call = parts[0].function_call
         args = function_call.args
         print("🧠 IA interpretou:", args)
-        
-        # Chama a função real com os dados e o id_user
+
         if args:
-            salvar_agenda(**args, id_user=question.id_user)
-            return{
-                "resposta": {"Agendado com sucesso!"}
-            }
+            try:
+                await salvar_agenda(**args, id_user=question.id_user)
+                return {
+                    "resposta": "Agendado com sucesso!"
+                }
+            except Exception as e:
+                print(f"❌ Erro ao agendar: {str(e)}")
+                return {
+                    "resposta": f"Erro ao agendar: {str(e)}"
+                }
 
     return {
         "pergunta": question.pergunta,
