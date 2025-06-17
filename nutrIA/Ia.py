@@ -2,57 +2,64 @@ import google.generativeai as gemini
 from pydantic import BaseModel
 import os
 import firebase_admin
+from firebase.firebase_config import db
 from google.generativeai.types import FunctionDeclaration, Tool
-from firebase.firebase_config import firebase_admin, db
 
+# Inicialização do Firebase
 admin = firebase_admin
 
-# API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
-
+# Configuração da API Gemini
 API_KEY = os.getenv("GEMINI_API")
 gemini.configure(api_key=API_KEY)
 
+# 🛠️ Função para agendar refeições, com múltiplos agendamentos
 schedule_meeting_function = FunctionDeclaration(
     name="schedule_meeting",
-    description="Agendar alimentação do usuário, Refeição, hora",
+    description="Agendar uma ou mais refeições do usuário, incluindo horário e descrição.",
     parameters={
         "type": "object",
         "properties": {
-            "refeicao":{
-                "type": "string",
-                "description": "quero comer Sanduíche"
-            },
-            "hora":{
-                "type": "string",
-                "description": "comer às 19:40"
+            "agendamentos": {
+                "type": "array",
+                "description": "Lista de refeições a serem agendadas.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "refeicao": {
+                            "type": "string",
+                            "description": "Descrição da refeição. Ex: 'Sanduíche com queijo'."
+                        },
+                        "hora": {
+                            "type": "string",
+                            "description": "Horário no formato HH:MM. Ex: '19:40'."
+                        }
+                    },
+                    "required": ["refeicao", "hora"]
+                }
             }
         },
-        "required": ["refeicao", "hora"],
-    },
+        "required": ["agendamentos"]
+    }
 )
 
-def indentificar_tipo_refeicao(hora: str) -> str:
+# 🔍 Função para determinar o tipo de refeição com base na hora
+def identificar_tipo_refeicao(hora: str) -> str:
     hora_int = int(hora.split(':')[0])
-    if 6 <= hora_int < 11:
-        return "Café Da Manhã"
+    if 5 <= hora_int < 11:
+        return "Café da Manhã"
     elif 11 <= hora_int < 15:
         return "Almoço"
-    elif 15 <= hora_int < 19:
+    elif 15 <= hora_int < 18:
         return "Lanche"
     else:
         return "Jantar"
 
+# ⏰ Valida e formata horário
 def validar_e_formatar_horario(hora: str) -> str:
-    """
-    Valida e formata o horário no formato HH:MM.
-    :param hora: Horário fornecido pelo usuário.
-    :return: Horário formatado no formato HH:MM ou levanta uma exceção se inválido.
-
-    """
     try:
         partes = hora.split(":")
         if len(partes) != 2:
-            raise ValueError("Formato de horário inválido. Use HH:MM.")
+            raise ValueError("Formato inválido. Use HH:MM.")
 
         hora_int = int(partes[0])
         minuto_int = int(partes[1])
@@ -64,68 +71,73 @@ def validar_e_formatar_horario(hora: str) -> str:
     except Exception as e:
         raise ValueError(f"Erro ao validar o horário: {str(e)}")
 
-async def salvar_agenda(refeicao, hora, id_user):
-    """
-    Salva o agendamento no banco de dados Firebase.
-    :param refeicao: Nome da refeição.
-    :param hora: Horário agendado no formato "HH:mm".
-    :param id_user: ID do usuário.
-
-    """
+# 🔥 Função que salva os agendamentos no Firebase
+async def salvar_agenda(agendamentos, id_user):
     try:
-        hora_formatada = validar_e_formatar_horario(hora)
-
-        tipo_refeicao = indentificar_tipo_refeicao(hora_formatada)
-        if not refeicao or not hora:
-            print("❌ Erro: Refeição ou hora não informados.")
-            return
-        
-        prompt = f"Calcule as calorias para a refeição '{refeicao}'"
-        model = gemini.GenerativeModel("gemini-1.5-flash", system_instruction="Você deve apenas retornar numero")
-        gemini_response = await model.generate_content_async(prompt)
-
-        calorias = gemini_response.text.strip()
-        if not calorias.isdigit():
-            return "Erro ao calcular as calorias. Resposta inválida do Gemini."
-
-        calorias = int(calorias)
-
         ref = db.reference(f"users/{id_user}/diaries")
 
-        novo_agendamento = {
-            "tipo_refeicao": tipo_refeicao,
-            "refeicao": refeicao,
-            "hora": hora_formatada,
-            "calorias": calorias,
-            "progress": {
-                "0": False,
-                "1": False,
-                "2": False,
-                "3": False,
-                "4": False,
-                "5": False,
-                "6": False
+        for agendamento in agendamentos:
+            refeicao = agendamento.get('refeicao')
+            hora = validar_e_formatar_horario(agendamento.get('hora'))
+
+            if not refeicao or not hora:
+                raise ValueError("Refeição e hora são obrigatórios.")
+
+            tipo_refeicao = identificar_tipo_refeicao(hora)
+
+            # Calcula calorias via IA (substituir por TBCA futuramente)
+            prompt = f"Calcule as calorias para a refeição '{refeicao}'. Apenas me retorne um número inteiro, sem nenhuma palavra."
+            model = gemini.GenerativeModel("gemini-1.5-flash", system_instruction="Retorne apenas um número inteiro representando calorias.")
+            gemini_response = await model.generate_content_async(prompt)
+
+            calorias = gemini_response.text.strip()
+            if not calorias.isdigit():
+                calorias = 0  # Fallback se a IA não responder corretamente
+
+            calorias = int(calorias)
+
+            novo_agendamento = {
+                "tipo_refeicao": tipo_refeicao,
+                "refeicao": refeicao,
+                "hora": hora,
+                "calorias": calorias,
+                "progress": {
+                    "0": False, "1": False, "2": False,
+                    "3": False, "4": False, "5": False, "6": False
+                }
             }
-        }
 
-        ref.push(novo_agendamento)
+            ref.push(novo_agendamento)
+            print(f"✅ Agendamento salvo: {refeicao} às {hora}")
 
-        print(f"✅ Agendamento salvo para o usuário {id_user}")
+        return "Agendamento(s) salvo(s) com sucesso!"
+
     except ValueError as e:
-        print(f"❌ Erro ao salvar agendamento: {str(e)}")
+        print(f"❌ Erro: {str(e)}")
+        raise
 
-
+# 🎯 Classe para input de pergunta
 class Pergunta(BaseModel):
     pergunta: str
     id_user: str
 
+# 🤖 Função principal da IA
 async def read_root(question: Pergunta):
     ref = db.reference(f"users/{question.id_user}")
     dados = ref.get()
 
+    if not dados:
+        return {"resposta": "Usuário não encontrado."}
+
     model = gemini.GenerativeModel(
         "gemini-1.5-flash",
-        system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA e esse é seu nome. Você apenas auxiliará o usuário e terá que ser direta. Não responda perguntas além de nutricionismo. nome do usuário: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}",
+        system_instruction=(
+            f"Você é a NutrIA, uma assistente nutricional. "
+            f"Ajude {dados['nome']} (idade: {dados['idade']} anos, peso: {dados['peso']} kg, altura: {dados['altura']} cm, "
+            f"sexo: {dados['sexo']}, objetivo: {dados['objetivo']}) a agendar refeições, calcular calorias, "
+            f"e fornecer orientações nutricionais simples. "
+            f"Nunca responda perguntas que não sejam relacionadas à nutrição, alimentação, hábitos saudáveis ou agendamento de refeições."
+        ),
         tools=[Tool(function_declarations=[schedule_meeting_function])]
     )
 
@@ -141,19 +153,15 @@ async def read_root(question: Pergunta):
         args = function_call.args
         print("🧠 IA interpretou:", args)
 
-        if args:
+        if args and 'agendamentos' in args:
             try:
-                await salvar_agenda(**args, id_user=question.id_user)
-                return {
-                    "resposta": "Agendado com sucesso!"
-                }
+                await salvar_agenda(agendamentos=args['agendamentos'], id_user=question.id_user)
+                return {"resposta": "✅ Agendamento(s) realizado(s) com sucesso!"}
             except Exception as e:
                 print(f"❌ Erro ao agendar: {str(e)}")
-                return {
-                    "resposta": f"Erro ao agendar: {str(e)}"
-                }
+                return {"resposta": f"Erro ao agendar: {str(e)}"}
 
     return {
         "pergunta": question.pergunta,
-        "resposta": resposta.text
+        "resposta": resposta.text.strip()
     }
