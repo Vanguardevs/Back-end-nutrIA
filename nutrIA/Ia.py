@@ -124,7 +124,13 @@ async def read_root(question: Pergunta):
     dados = ref.get()
 
     if question.pergunta == "/lailson":
-        return {"resposta":"Lailson gay kkkkkkkakkakkkaka"}
+        return {"resposta":"🦧"}
+
+    if question.pergunta == "/kauan":
+        return {"resposta":"Modo Autista ativado! 🦖"}
+
+        
+    
 
     model = gemini.GenerativeModel(
         "gemini-1.5-flash",
