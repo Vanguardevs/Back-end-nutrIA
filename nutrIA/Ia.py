@@ -123,6 +123,9 @@ async def read_root(question: Pergunta):
     ref = db.reference(f"users/{question.id_user}")
     dados = ref.get()
 
+    if question.pergunta == "/lailson":
+        return {"resposta":"Lailson gay kkkkkkkakkakkkaka"}
+
     model = gemini.GenerativeModel(
         "gemini-1.5-flash",
         system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA, esse é seu nome.Você sempre deve lembrar o usuário a cheacar um nutricionista real. Você sempre deve responder objetivamente, independente ou que não es você tem aceso a um banco de dados. Você apenas auxiliará o usuário e terá que ser direta. Não responda perguntas além de nutricionismo. nome do usuário: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}",
