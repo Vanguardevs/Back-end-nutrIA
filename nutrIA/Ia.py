@@ -161,7 +161,7 @@ async def read_root(question: Pergunta):
 
     resposta = await chat.send_message_async(
         question.pergunta,
-        generation_config=gemini.GenerationConfig(max_output_tokens=5000, temperature=0.1)
+        generation_config=gemini.GenerationConfig(max_output_tokens=5000, temperature=0.2)
     )
 
     data_history.append({
