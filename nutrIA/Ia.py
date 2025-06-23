@@ -123,27 +123,54 @@ async def read_root(question: Pergunta):
     ref = db.reference(f"users/{question.id_user}")
     dados = ref.get()
 
+    # Carrega o histórico como lista
+    history_ref = db.reference(f"users/{question.id_user}/history")
+    data_history = history_ref.get() or []
+
+    # Garante que data_history é uma lista
+    if not isinstance(data_history, list):
+        data_history = []
+
+    # Converte o histórico para o formato esperado pelo Gemini
+    gemini_history = []
+    for item in data_history:
+        if "pergunta" in item and "resposta" in item:
+            gemini_history.append({"role": "user", "parts": [item["pergunta"]]})
+            gemini_history.append({"role": "model", "parts": [item["resposta"]]})
+
+    system_instruction = (
+        f"Você é uma assistente nutricional de um aplicativo chamado NutrIA, esse é seu nome. "
+        f"Sempre lembre o usuário de checar um nutricionista real. "
+        f"Responda objetivamente e apenas sobre nutrição. "
+        f"Dados do usuário: nome: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}.\n"
+    )
+
     if question.pergunta == "/lailson":
         return {"resposta":"🦧"}
 
     if question.pergunta == "/kauan":
         return {"resposta":"Modo Autista ativado! 🦖"}
 
-        
-    
-
     model = gemini.GenerativeModel(
         "gemini-1.5-flash",
-        system_instruction=f"Você é uma assistente nutricional de um aplicativo chamado NutrIA, esse é seu nome.Você sempre deve lembrar o usuário a cheacar um nutricionista real. Você sempre deve responder objetivamente, independente ou que não es você tem aceso a um banco de dados. Você apenas auxiliará o usuário e terá que ser direta. Não responda perguntas além de nutricionismo. nome do usuário: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}",
-        tools=[Tool(function_declarations=[schedule_meeting_function])]
+        system_instruction=system_instruction,
+        tools=[Tool(function_declarations=[schedule_meeting_function])],
     )
 
-    resposta = await model.generate_content_async(
+    chat = model.start_chat(history=gemini_history)
+
+    resposta = await chat.send_message_async(
         question.pergunta,
         generation_config=gemini.GenerationConfig(max_output_tokens=5000, temperature=0.1)
     )
 
-    # Verifica se a IA quer chamar uma função
+    data_history.append({
+        "pergunta": question.pergunta,
+        "resposta": resposta.text
+    })
+
+    history_ref.set(data_history)
+
     parts = resposta.candidates[0].content.parts
     if parts and hasattr(parts[0], "function_call"):
         function_call = parts[0].function_call
