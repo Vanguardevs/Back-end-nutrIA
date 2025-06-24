@@ -12,8 +12,8 @@ admin = firebase_admin
 API_KEY = os.getenv("GEMINI_API")
 gemini.configure(api_key=API_KEY)
 
-schedule_meeting_function = FunctionDeclaration(
-    name="schedule_meeting",
+Food_scheduling = FunctionDeclaration(
+    name="Food_scheduling",
     description="Agendar alimentação do usuário, Refeição, hora",
     parameters={
         "type": "object",
@@ -176,7 +176,7 @@ async def read_root(question: Pergunta):
     model = gemini.GenerativeModel(
         "gemini-1.5-flash",
         system_instruction=system_instruction,
-        tools=[Tool(function_declarations=[schedule_meeting_function, update_name_function])],
+        tools=[Tool(function_declarations=[Food_scheduling, update_name_function])],
     )
 
     resposta = await model.generate_content_async(
@@ -210,19 +210,23 @@ async def read_root(question: Pergunta):
 
         if args:
             try:
-                if function_name == "schedule_meeting" and "refeicao" in args and "hora" in args:
+                if function_name == "Food_scheduling" and "refeicao" in args and "hora" in args:
                     resp = await salvar_agenda(**args, id_user=question.id_user)
                     print("✅ Agendamento realizado com sucesso!")
                     return {"resposta": resp["resposta"]}
                 
                 elif function_name == "update_name" and "nome" in args:
-                    ref = db.reference(f"users/{question.id_user}")
-                    ref.update({"nome": args["nome"]})
-                    print("✅ Nome atualizado com sucesso!")
-                    return {"resposta": "Nome atualizado com sucesso!"}
+                    try:
+                        ref = db.reference(f"users/{question.id_user}")
+                        ref.update({"nome": args["nome"]})
+                        print("✅ Nome atualizado com sucesso!")
+                        return {"resposta": "Nome atualizado com sucesso!"}
+                    except Exception as e:
+                        print(f"❌ Erro ao atualizar nome: {str(e)}")
+                        return {"resposta": "Erro ao atualizar nome, tente novamente."}
                 
                 else:
-                    return {"resposta": "Função não reconhecida ou argumentos inválidos."}
+                    return {"resposta": "Pedido não reconhecido ou dados inválidos, Tente novamente"}
             except Exception as e:
                 print(f"❌ Erro: {str(e)}")
                 return {
