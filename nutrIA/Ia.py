@@ -7,7 +7,7 @@ from firebase.firebase_config import firebase_admin, db
 
 admin = firebase_admin
 
-# API_KEY = "AIzaSyC-9oOoUxE0v13DNuE37qBzClAfhJrxRJs"
+# API_KEY = "AIzaSyBv0E-R980Ye5nBMemlAk1LoT8I0Fsld3Y"
 
 API_KEY = os.getenv("GEMINI_API")
 gemini.configure(api_key=API_KEY)
@@ -28,6 +28,21 @@ schedule_meeting_function = FunctionDeclaration(
             }
         },
         "required": ["refeicao", "hora"],
+    },
+)
+
+update_name_function = FunctionDeclaration(
+    name="update_name",
+    description="Atualizar nome do usuário",
+    parameters={
+        "type": "object",
+        "properties": {
+            "nome":{
+                "type": "string",
+                "description": "Vitor"
+            },
+        },
+        "required": ["nome"],
     },
 )
 
@@ -111,32 +126,35 @@ async def salvar_agenda(refeicao, hora, id_user):
         ref.push(novo_agendamento)
 
         print(f"✅ Agendamento salvo para o usuário {id_user}")
+        return {"resposta":"Agendado com sucesso!"}
     except ValueError as e:
         print(f"❌ Erro ao salvar agendamento: {str(e)}")
-
+        return {"resposta":"Erro ao agendar, tente novamente."}
 
 class Pergunta(BaseModel):
     pergunta: str
     id_user: str
 
 async def read_root(question: Pergunta):
+    
     ref = db.reference(f"users/{question.id_user}")
     dados = ref.get()
 
-    # Carrega o histórico como lista
-    history_ref = db.reference(f"users/{question.id_user}/history")
-    data_history = history_ref.get() or []
+    # # Carrega o histórico como lista
+    # history_ref = db.reference(f"users/{question.id_user}/history")
+    # data_history = history_ref.get() or []
 
-    # Garante que data_history é uma lista
-    if not isinstance(data_history, list):
-        data_history = []
+    # # Garante que data_history é uma lista
+    # if not isinstance(data_history, list):
+    #     data_history = []
 
-    # Converte o histórico para o formato esperado pelo Gemini
-    gemini_history = []
-    for item in data_history:
-        if "pergunta" in item and "resposta" in item:
-            gemini_history.append({"role": "user", "parts": [item["pergunta"]]})
-            gemini_history.append({"role": "model", "parts": [item["resposta"]]})
+    # # Converte o histórico para o formato esperado pelo Gemini
+    # gemini_history = []
+    # for item in data_history:
+    #     if "pergunta" in item and "resposta" in item:
+    #         gemini_history.append({"role": "user", "parts": [item["pergunta"]]})
+    #         gemini_history.append({"role": "model", "parts": [item["resposta"]]})
+
 
     system_instruction = (
         f"Você é uma assistente nutricional de um aplicativo chamado NutrIA, esse é seu nome. "
@@ -145,51 +163,75 @@ async def read_root(question: Pergunta):
         f"Dados do usuário: nome: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}.\n"
     )
 
+#-----------------------------------------------------------------------------------------------------#
     if question.pergunta == "/lailson":
         return {"resposta":"🦧"}
 
     if question.pergunta == "/kauan":
         return {"resposta":"Modo Autista ativado! 🦖"}
 
+#-----------------------------------------------------------------------------------------------------#
+
+
     model = gemini.GenerativeModel(
         "gemini-1.5-flash",
         system_instruction=system_instruction,
-        tools=[Tool(function_declarations=[schedule_meeting_function])],
+        tools=[Tool(function_declarations=[schedule_meeting_function, update_name_function])],
     )
 
-    chat = model.start_chat(history=gemini_history)
-
-    resposta = await chat.send_message_async(
+    resposta = await model.generate_content_async(
         question.pergunta,
-        generation_config=gemini.GenerationConfig(max_output_tokens=5000, temperature=0.2)
+        generation_config=gemini.GenerationConfig(
+            max_output_tokens=5000,
+            temperature=0.2,
+        )
     )
 
-    data_history.append({
-        "pergunta": question.pergunta,
-        "resposta": resposta.text
-    })
+    # chat = model.start_chat(history=gemini_history)
 
-    history_ref.set(data_history)
+    # resposta = await chat.send_message_async(
+    #     question.pergunta,
+    #     generation_config=gemini.GenerationConfig(max_output_tokens=5000, temperature=0.2)
+    # )
+
+    # data_history.append({
+    #     "pergunta": question.pergunta,
+    #     "resposta": resposta.text
+    # })
+
+    # history_ref.set(data_history)
 
     parts = resposta.candidates[0].content.parts
     if parts and hasattr(parts[0], "function_call"):
         function_call = parts[0].function_call
         args = function_call.args
-        print("🧠 IA interpretou:", args)
+        function_name = function_call.name
+        print("🧠 IA interpretou:", args, "Função:", function_name)
 
         if args:
             try:
-                await salvar_agenda(**args, id_user=question.id_user)
-                return {
-                    "resposta": "Agendado com sucesso!"
-                }
+                if function_name == "schedule_meeting" and "refeicao" in args and "hora" in args:
+                    resp = await salvar_agenda(**args, id_user=question.id_user)
+                    print("✅ Agendamento realizado com sucesso!")
+                    return {"resposta": resp["resposta"]}
+                
+                elif function_name == "update_name" and "nome" in args:
+                    ref = db.reference(f"users/{question.id_user}")
+                    ref.update({"nome": args["nome"]})
+                    print("✅ Nome atualizado com sucesso!")
+                    return {"resposta": "Nome atualizado com sucesso!"}
+                
+                else:
+                    return {"resposta": "Função não reconhecida ou argumentos inválidos."}
             except Exception as e:
-                print(f"❌ Erro ao agendar: {str(e)}")
+                print(f"❌ Erro: {str(e)}")
                 return {
-                    "resposta": f"Erro ao agendar: {str(e)}"
+                    "resposta": f"Erro: {str(e)}"
                 }
 
+    # Se não for function_call, retorna o texto normalmente
+    resposta_texto = resposta.text if hasattr(resposta, "text") else str(resposta)
     return {
         "pergunta": question.pergunta,
-        "resposta": resposta.text
+        "resposta": resposta_texto
     }
