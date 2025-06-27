@@ -46,6 +46,36 @@ update_name_function = FunctionDeclaration(
     },
 )
 
+update_peso_function = FunctionDeclaration(
+    name="update_peso",
+    description="Atualizar peso do usuário",
+    parameters={
+        "type": "object",
+        "properties": {
+            "peso":{
+                "type": "string",
+                "description": "65"
+            },
+        },
+        "required": ["peso"],
+    },
+)
+
+update_height_function = FunctionDeclaration(
+    name="update_altura",
+    description="Atualizar altura do usuário",
+    parameters={
+        "type": "object",
+        "properties": {
+            "altura":{
+                "type": "string",
+                "description": "1.70"
+            },
+        },
+        "required": ["altura"],
+    },
+)
+
 def indentificar_tipo_refeicao(hora: str) -> str:
     hora_int = int(hora.split(':')[0])
     if 6 <= hora_int < 11:
@@ -176,7 +206,7 @@ async def read_root(question: Pergunta):
     model = gemini.GenerativeModel(
         "gemini-1.5-flash",
         system_instruction=system_instruction,
-        tools=[Tool(function_declarations=[Food_scheduling, update_name_function])],
+        tools=[Tool(function_declarations=[Food_scheduling, update_name_function, update_peso_function, update_height_function])],
     )
 
     resposta = await model.generate_content_async(
@@ -225,6 +255,27 @@ async def read_root(question: Pergunta):
                         print(f"❌ Erro ao atualizar nome: {str(e)}")
                         return {"resposta": "Erro ao atualizar nome, tente novamente."}
                 
+                elif function_name == "update_peso" and "peso" in args:
+                    try:
+                        ref = db.reference(f"users/{question.id_user}")
+                        ref.update({"peso": args["peso"]})
+                        print("✅ Peso atualizado com sucesso!")
+                        return {"resposta": "Peso atualizado com sucesso!"}
+                    except Exception as e:
+                        print(f"❌ Erro ao atualizar peso: {str(e)}")
+                        return {"resposta": "Erro ao atualizar peso, tente novamente."}
+                    
+                elif function_name == "update_altura" and "altura" in args:
+                    try:
+                        ref = db.reference(f"users/{question.id_user}")
+                        ref.update({"altura": args["altura"]})
+                        print("✅ Altura atualizada com sucesso!")
+                        return {"resposta": "Altura atualizada com sucesso!"}
+                    except Exception as e:
+                        print(f"❌ Erro ao atualizar altura: {str(e)}")
+                        return {"resposta": "Erro ao atualizar altura, tente novamente."}
+                
+
                 else:
                     return {"resposta": "Pedido não reconhecido ou dados inválidos, Tente novamente"}
             except Exception as e:
