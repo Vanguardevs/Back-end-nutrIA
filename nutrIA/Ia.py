@@ -4,6 +4,7 @@ import os
 import firebase_admin
 from google.generativeai.types import FunctionDeclaration, Tool
 from firebase.firebase_config import firebase_admin, db
+import re
 
 admin = firebase_admin
 
@@ -73,6 +74,33 @@ update_height_function = FunctionDeclaration(
             },
         },
         "required": ["altura"],
+    },
+)
+
+calcular_calorias_function = FunctionDeclaration(
+    name="calcular_calorias",
+    description="Calcule as calorias diárias com base no peso, altura, idade e sexo",
+    parameters={
+        "type": "object",
+        "properties": {
+            "peso": {
+                "type": "string",
+                "description": "Peso do usuário em kg"
+            },
+            "altura": {
+                "type": "string",
+                "description": "Altura do usuário em metros"
+            },
+            "idade": {
+                "type": "string",
+                "description": "Idade do usuário em anos"
+            },
+            "sexo": {
+                "type": "string",
+                "description": "Sexo do usuário (masculino ou feminino)"
+            }
+        },
+        "required": ["peso", "altura", "idade", "sexo"],
     },
 )
 
@@ -187,7 +215,8 @@ async def read_root(question: Pergunta):
 
 
     system_instruction = (
-        f"Você é uma assistente nutricional de um aplicativo chamado NutrIA, esse é seu nome. "
+        f"Você é uma assistente nutricional de um aplicativo chamado NutrIA. "
+        f"Sempre que o usuário informar dados como nome, peso ou altura, utilize as funções disponíveis para atualizar essas informações no sistema, ao invés de apenas responder em texto. "
         f"Sempre lembre o usuário de checar um nutricionista real. "
         f"Responda objetivamente e apenas sobre nutrição. "
         f"Dados do usuário: nome: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}.\n"
@@ -206,7 +235,7 @@ async def read_root(question: Pergunta):
     model = gemini.GenerativeModel(
         "gemini-1.5-flash",
         system_instruction=system_instruction,
-        tools=[Tool(function_declarations=[Food_scheduling, update_name_function, update_peso_function, update_height_function])],
+        tools=[Tool(function_declarations=[Food_scheduling, update_name_function, update_peso_function, update_height_function, calcular_calorias_function])],
     )
 
     resposta = await model.generate_content_async(
@@ -275,6 +304,27 @@ async def read_root(question: Pergunta):
                         print(f"❌ Erro ao atualizar altura: {str(e)}")
                         return {"resposta": "Erro ao atualizar altura, tente novamente."}
                 
+                elif function_name == "calcular_calorias" and all(k in args for k in ["peso", "altura", "idade", "sexo"]):
+                    try:
+                        peso = args["peso"]
+                        altura = args["altura"]
+                        idade = args["idade"]
+                        sexo = args["sexo"]
+
+                        prompt = f"Calcule as calorias diárias para um usuário com peso {peso} kg, altura {altura} m, idade {idade} anos e sexo {sexo}."
+                        model_calorias = gemini.GenerativeModel("gemini-1.5-flash", system_instruction="Você deve apenas retornar numero")
+                        gemini_response = await model_calorias.generate_content_async(prompt)
+
+                        calorias = gemini_response.text.strip()
+                        if not calorias.isdigit():
+                            return {"resposta": "Erro ao calcular as calorias. Resposta inválida do Gemini."}
+
+                        calorias = int(calorias)
+                        print(f"✅ Calorias calculadas: {calorias}")
+                        return {"resposta": f"As calorias diárias recomendadas são: {calorias} kcal."}
+                    except Exception as e:
+                        print(f"❌ Erro ao calcular calorias: {str(e)}")
+                        return {"resposta": "Erro ao calcular calorias, tente novamente."}
 
                 else:
                     return {"resposta": "Pedido não reconhecido ou dados inválidos, Tente novamente"}
@@ -284,8 +334,26 @@ async def read_root(question: Pergunta):
                     "resposta": f"Erro: {str(e)}"
                 }
 
-    # Se não for function_call, retorna o texto normalmente
-    resposta_texto = resposta.text if hasattr(resposta, "text") else str(resposta)
+    try:
+        parts = resposta.candidates[0].content.parts
+        resposta_texto = ""
+        for part in parts:
+            if hasattr(part, "text"):
+                resposta_texto += part.text
+
+        # Tenta identificar atualização de peso na resposta textual
+        match = re.search(r"atualizar seu peso para (\d+)", resposta_texto)
+        if match:
+            novo_peso = match.group(1)
+            ref = db.reference(f"users/{question.id_user}")
+            ref.update({"peso": novo_peso})
+            print("✅ Peso atualizado via resposta textual!")
+        
+        if not resposta_texto:
+            resposta_texto = "Não foi possível interpretar a resposta da IA."
+    except Exception:
+        resposta_texto = "Não foi possível interpretar a resposta da IA."
+
     return {
         "pergunta": question.pergunta,
         "resposta": resposta_texto
