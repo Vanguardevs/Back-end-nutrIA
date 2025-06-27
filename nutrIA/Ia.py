@@ -212,7 +212,7 @@ async def read_root(question: Pergunta):
         f"Sempre que o usuário informar dados como nome, peso ou altura, utilize as funções disponíveis para atualizar essas informações no sistema, ao invés de apenas responder em texto. "
         f"Sempre lembre o usuário de checar um nutricionista real. "
         f"Responda objetivamente e apenas sobre nutrição. "
-        f"Dados do usuário: nome: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']} alergias: {dados["health"]["alergias"]}.\n"
+        f"Dados do usuário: nome: {dados['nome']}, idade: {dados['idade']}, peso: {dados['peso']}, altura: {dados['altura']}, sexo: {dados['sexo']}, objetivo: {dados['objetivo']}.\n"
     )
 
 #-----------------------------------------------------------------------------------------------------#
