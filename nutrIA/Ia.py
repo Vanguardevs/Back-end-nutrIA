@@ -306,7 +306,7 @@ async def read_root(question: Pergunta):
                         meta = args["objetivo"]
 
                         prompt = f"Calcule as calorias diárias para um usuário com peso {peso} kg, altura {altura} m, idade {idade} anos e sexo {sexo} e que possui uma meta de {meta}."
-                        model_calorias = gemini.GenerativeModel("gemini-2.0-flash", system_instruction="Você deve apenas retornar numero")
+                        model_calorias = gemini.GenerativeModel("gemini-1.5-flash", system_instruction="Você deve apenas retornar numero")
                         gemini_response = await model_calorias.generate_content_async(prompt)
 
                         calorias = gemini_response.text.strip()
