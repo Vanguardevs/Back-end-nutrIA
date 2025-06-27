@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import os
 import firebase_admin
 from google.generativeai.types import FunctionDeclaration, Tool
-from firebase.firebase_config import firebase_admin, db
+from .firebase.firebase_config import firebase_admin, db
 
 admin = firebase_admin
 
