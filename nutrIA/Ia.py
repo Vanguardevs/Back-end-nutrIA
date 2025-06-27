@@ -226,7 +226,7 @@ async def read_root(question: Pergunta):
 
 
     model = gemini.GenerativeModel(
-        "gemini-1.5",
+        "gemini-2.5-flash",
         system_instruction=system_instruction,
         tools=[Tool(function_declarations=[Food_scheduling, update_name_function, update_peso_function, update_height_function, calcular_calorias_function])],
     )
