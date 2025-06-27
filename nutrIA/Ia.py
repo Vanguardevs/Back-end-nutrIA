@@ -7,9 +7,9 @@ from firebase.firebase_config import firebase_admin, db
 
 admin = firebase_admin
 
-# API_KEY = "AIzaSyBv0E-R980Ye5nBMemlAk1LoT8I0Fsld3Y"
+API_KEY = "AIzaSyBv0E-R980Ye5nBMemlAk1LoT8I0Fsld3Y"
 
-API_KEY = os.getenv("GEMINI_API")
+# API_KEY = os.getenv("GEMINI_API")
 gemini.configure(api_key=API_KEY)
 
 Food_scheduling = FunctionDeclaration(
