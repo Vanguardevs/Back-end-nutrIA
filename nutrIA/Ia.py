@@ -156,16 +156,6 @@ async def salvar_agenda(refeicao, hora, id_user):
         if not refeicao or not hora:
             print("❌ Erro: Refeição ou hora não informados.")
             return
-        
-        prompt = f"Calcule as calorias para a refeição '{refeicao}'"
-        model = gemini.GenerativeModel("gemini-1.5-flash", system_instruction="Você deve apenas retornar numero")
-        gemini_response = await model.generate_content_async(prompt)
-
-        calorias = gemini_response.text.strip()
-        if not calorias.isdigit():
-            return "Erro ao calcular as calorias. Resposta inválida do Gemini."
-
-        calorias = int(calorias)
 
         ref = db.reference(f"users/{id_user}/diaries")
 
@@ -173,7 +163,6 @@ async def salvar_agenda(refeicao, hora, id_user):
             "tipo_refeicao": tipo_refeicao,
             "refeicao": refeicao,
             "hora": hora_formatada,
-            "calorias": calorias,
             "progress": {
                 "0": False,
                 "1": False,
