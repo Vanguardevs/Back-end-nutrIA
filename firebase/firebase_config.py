@@ -1,8 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials, db
 
-print("jdfjfjkldsjfkdsjklf")
-
 # Verifica se o Firebase já foi inicializado
 if not firebase_admin._apps:
     # cred = credentials.Certificate("firebase/nutria.json")
