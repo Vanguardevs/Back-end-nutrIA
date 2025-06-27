@@ -98,9 +98,13 @@ calcular_calorias_function = FunctionDeclaration(
             "sexo": {
                 "type": "string",
                 "description": "Sexo do usuário (masculino ou feminino)"
+            },
+            "objetivo": {
+                "type": "string",
+                "description": "objetivo do usuário (opcional)"
             }
         },
-        "required": ["peso", "altura", "idade", "sexo"],
+        "required": ["peso", "altura", "idade", "sexo", "objetivo"],
     },
 )
 
@@ -310,8 +314,9 @@ async def read_root(question: Pergunta):
                         altura = args["altura"]
                         idade = args["idade"]
                         sexo = args["sexo"]
+                        meta = args["objetivo"]
 
-                        prompt = f"Calcule as calorias diárias para um usuário com peso {peso} kg, altura {altura} m, idade {idade} anos e sexo {sexo}."
+                        prompt = f"Calcule as calorias diárias para um usuário com peso {peso} kg, altura {altura} m, idade {idade} anos e sexo {sexo} e que possui uma meta de {meta}."
                         model_calorias = gemini.GenerativeModel("gemini-1.5-flash", system_instruction="Você deve apenas retornar numero")
                         gemini_response = await model_calorias.generate_content_async(prompt)
 
