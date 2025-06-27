@@ -8,7 +8,7 @@ import re
 
 admin = firebase_admin
 
-API_KEY = "AIzaSyD_-VjSPBftv2jyBgnQNNfXY6gjWSBeEcM"
+API_KEY = "AIzaSyAILOlu2FLMkDX827EptqOp9lP2KGsr_yI"
 
 # API_KEY = os.getenv("GEMINI_API")
 gemini.configure(api_key=API_KEY)
